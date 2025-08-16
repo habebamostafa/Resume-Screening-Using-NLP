@@ -14,7 +14,7 @@ from PyPDF2 import PdfReader
 import docx
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
-
+import os 
 # Load NLP model
 try:
     nlp = spacy.load("en_core_web_sm")
