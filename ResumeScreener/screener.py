@@ -30,14 +30,13 @@ class ResumeScreener:
             self.load_model(model_path)
 
     def _load_spacy_model(self):
-        """Load spaCy model with error handling"""
         try:
             return spacy.load("en_core_web_sm")
-        except OSError:
-            raise ImportError(
-                "Spacy model 'en_core_web_sm' not found. "
-                "Please install it with: python -m spacy download en_core_web_sm"
-            )
+        except:
+            # Fallback to English without model
+            nlp = spacy.blank("en")
+            nlp.add_pipe("sentencizer")
+            return nlp
 
     def load_model(self, model_path):
         """
