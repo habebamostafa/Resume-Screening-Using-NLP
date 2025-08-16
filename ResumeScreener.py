@@ -21,7 +21,7 @@ except OSError:
     import os
     os.system("python -m spacy download en_core_web_sm")
     nlp = spacy.load("en_core_web_sm")
-    
+
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 EMBEDDING_DIM=384
 
@@ -44,7 +44,7 @@ class ResumeScreener:
             reader = PdfReader(file_path)
             text = " ".join([page.extract_text() for page in reader.pages])
         elif file_path.endswith('.docx'):
-            doc = docx.Document(file_path)
+            doc = Document(file_path)
             text = " ".join([para.text for para in doc.paragraphs])
         elif file_path.endswith('.txt'):
             with open(file_path, 'r') as f:
