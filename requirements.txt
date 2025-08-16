@@ -6,3 +6,4 @@ sentence-transformers
 spacy
 matplotlib
 nltk
+xgboost
