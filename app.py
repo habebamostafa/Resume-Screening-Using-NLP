@@ -20,7 +20,7 @@ if 'model_loaded' not in st.session_state:
     st.session_state.model_loaded = False
     
     # Check for model file
-    model_path = "models/resume_screener_model.joblib"
+    model_path = "resume_screener_model.joblib"
     if os.path.exists(model_path):
         try:
             st.session_state.screener.load_model(model_path)
