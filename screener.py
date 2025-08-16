@@ -108,7 +108,7 @@ class ResumeScreener:
             raise ValueError(f"Error processing file: {str(e)}")
 
     def extract_skills(self, text):
-        """Extract skills from text using comprehensive patterns"""
+        """Extract skills from text using comprehensive patterns and NER"""
         text_lower = text.lower()
         skills = set()
         
@@ -129,6 +129,7 @@ class ResumeScreener:
             r'\bscala\b': 'scala',
             r'\br\b(?=\s)': 'r',
             r'\bmatlab\b': 'matlab',
+            r'\btypescript\b': 'typescript',
             
             # Web Technologies
             r'\bhtml\b|\bhtml5\b': 'html',
@@ -143,6 +144,9 @@ class ResumeScreener:
             r'\bspring\b|\bspring boot\b': 'spring',
             r'\bbootstrap\b': 'bootstrap',
             r'\bjquery\b': 'jquery',
+            r'\bwebpack\b': 'webpack',
+            r'\bbabel\b': 'babel',
+            r'\bsass\b|\bscss\b': 'sass',
             
             # Databases
             r'\bmysql\b': 'mysql',
@@ -155,6 +159,8 @@ class ResumeScreener:
             r'\belasticsearch\b': 'elasticsearch',
             r'\bsql\b': 'sql',
             r'\bnosql\b': 'nosql',
+            r'\bfirebase\b': 'firebase',
+            r'\bdynamodb\b': 'dynamodb',
             
             # Cloud & DevOps
             r'\baws\b|\bamazon web services\b': 'aws',
@@ -169,6 +175,9 @@ class ResumeScreener:
             r'\bgithub\b': 'github',
             r'\bgitlab\b': 'gitlab',
             r'\bci/cd\b|\bcicd\b': 'ci/cd',
+            r'\bvagrant\b': 'vagrant',
+            r'\bchef\b': 'chef',
+            r'\bpuppet\b': 'puppet',
             
             # Data Science & ML
             r'\bmachine learning\b|\bml\b': 'machine learning',
@@ -187,6 +196,10 @@ class ResumeScreener:
             r'\br\b|\br programming\b': 'r',
             r'\bspss\b': 'spss',
             r'\bsas\b': 'sas',
+            r'\bjupyter\b': 'jupyter',
+            r'\bmatplotlib\b': 'matplotlib',
+            r'\bseaborn\b': 'seaborn',
+            r'\bplotly\b': 'plotly',
             
             # Mobile Development
             r'\bandroid\b': 'android',
@@ -194,6 +207,8 @@ class ResumeScreener:
             r'\breact native\b': 'react native',
             r'\bflutter\b': 'flutter',
             r'\bxamarin\b': 'xamarin',
+            r'\bionic\b': 'ionic',
+            r'\bcordova\b': 'cordova',
             
             # Other Technologies
             r'\blinux\b': 'linux',
@@ -233,7 +248,191 @@ class ResumeScreener:
         
         return sorted(list(skills))
 
-    def create_features(self, job_desc, resume_text):
+    def extract_named_entities(self, text):
+        """Extract named entities from resume text"""
+        entities = {
+            'experience_level': self._extract_experience(text),
+            'education': self._extract_education(text),
+            'certifications': self._extract_certifications(text),
+            'companies': self._extract_companies(text),
+            'projects': self._extract_projects(text),
+            'languages': self._extract_languages(text),
+            'contact_info': self._extract_contact_info(text)
+        }
+        return entities
+
+    def _extract_experience(self, text):
+        """Extract experience level from text"""
+        text_lower = text.lower()
+        
+        # Experience patterns
+        exp_patterns = [
+            r'(\d+)[\s\-]*years?\s+(?:of\s+)?experience',
+            r'(\d+)\+\s*years',
+            r'experience.*?(\d+)\s*years',
+            r'(\d+)\s*years\s*(?:of\s+)?(?:professional\s+)?experience'
+        ]
+        
+        for pattern in exp_patterns:
+            match = re.search(pattern, text_lower)
+            if match:
+                years = match.group(1)
+                return f"{years} years of experience"
+        
+        # Level indicators
+        if re.search(r'\b(?:entry.level|junior|fresher|graduate|new.grad)\b', text_lower):
+            return 'Entry Level / Junior'
+        elif re.search(r'\b(?:senior|lead|principal|architect)\b', text_lower):
+            return 'Senior Level'
+        elif re.search(r'\b(?:mid.level|intermediate)\b', text_lower):
+            return 'Mid Level'
+        
+        return 'Not specified'
+
+    def _extract_education(self, text):
+        """Extract education information"""
+        text_lower = text.lower()
+        degrees = []
+        
+        # Degree patterns
+        degree_patterns = [
+            (r'bachelor(?:\'s)?|b\.?s\.?|ba|be|btech|bsc', 'Bachelor\'s'),
+            (r'master(?:\'s)?|m\.?s\.?|ma|mba|mtech|msc', 'Master\'s'),
+            (r'phd|ph\.d|doctorate|doctoral', 'PhD/Doctorate'),
+            (r'diploma|certificate', 'Diploma/Certificate'),
+            (r'associate|aa|as', 'Associate'),
+        ]
+        
+        for pattern, degree_type in degree_patterns:
+            if re.search(pattern, text_lower):
+                degrees.append(degree_type)
+        
+        return list(set(degrees)) if degrees else ['Not specified']
+
+    def _extract_certifications(self, text):
+        """Extract certifications"""
+        text_lower = text.lower()
+        certifications = []
+        
+        cert_patterns = [
+            'aws certified',
+            'microsoft certified',
+            'google certified',
+            'oracle certified',
+            'cisco certified',
+            'pmp',
+            'project management professional',
+            'scrum master',
+            'certified scrum master',
+            'itil',
+            'comptia',
+            'cissp',
+            'ceh',
+            'cisa',
+            'cism'
+        ]
+        
+        for cert in cert_patterns:
+            if cert in text_lower:
+                certifications.append(cert.title())
+        
+        return certifications if certifications else ['None mentioned']
+
+    def _extract_companies(self, text):
+        """Extract company names using NER and patterns"""
+        companies = []
+        
+        try:
+            doc = self.nlp(text)
+            for ent in doc.ents:
+                if ent.label_ == "ORG":
+                    companies.append(ent.text)
+        except:
+            pass
+        
+        # Pattern-based extraction
+        company_patterns = [
+            r'worked\s+at\s+([A-Z][a-zA-Z\s&]+)',
+            r'experience\s+at\s+([A-Z][a-zA-Z\s&]+)',
+            r'employed\s+by\s+([A-Z][a-zA-Z\s&]+)',
+            r'intern\s+at\s+([A-Z][a-zA-Z\s&]+)'
+        ]
+        
+        for pattern in company_patterns:
+            matches = re.findall(pattern, text)
+            companies.extend([match.strip() for match in matches])
+        
+        # Clean and limit results
+        companies = list(set([comp for comp in companies if len(comp) > 2 and len(comp) < 50]))
+        return companies[:5] if companies else ['Not specified']
+
+    def _extract_projects(self, text):
+        """Extract project information"""
+        text_lower = text.lower()
+        
+        project_count = len(re.findall(r'\bproject\b', text_lower))
+        
+        # Look for specific project indicators
+        project_indicators = [
+            'developed',
+            'built',
+            'created',
+            'implemented',
+            'designed',
+            'led'
+        ]
+        
+        project_mentions = sum(len(re.findall(rf'\\b{indicator}\\b', text_lower)) for indicator in project_indicators)
+        
+        if project_count > 0:
+            return f"{project_count} projects mentioned"
+        elif project_mentions > 3:
+            return f"Multiple development activities mentioned"
+        else:
+            return "No projects explicitly mentioned"
+
+    def _extract_languages(self, text):
+        """Extract programming and spoken languages"""
+        text_lower = text.lower()
+        
+        spoken_languages = ['english', 'spanish', 'french', 'german', 'chinese', 'japanese', 'arabic', 'hindi', 'portuguese', 'russian', 'italian']
+        found_languages = []
+        
+        for lang in spoken_languages:
+            if lang in text_lower or f'{lang} language' in text_lower:
+                found_languages.append(lang.title())
+        
+        return found_languages if found_languages else ['English (assumed)']
+
+    def _extract_contact_info(self, text):
+        """Extract contact information"""
+        contact = {}
+        
+        # Email pattern
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        email_match = re.search(email_pattern, text)
+        if email_match:
+            contact['email'] = email_match.group()
+        
+        # Phone pattern
+        phone_pattern = r'(\+?1?[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})'
+        phone_match = re.search(phone_pattern, text)
+        if phone_match:
+            contact['phone'] = phone_match.group()
+        
+        # LinkedIn pattern
+        linkedin_pattern = r'linkedin\.com/in/[\w-]+'
+        linkedin_match = re.search(linkedin_pattern, text, re.IGNORECASE)
+        if linkedin_match:
+            contact['linkedin'] = linkedin_match.group()
+        
+        # GitHub pattern
+        github_pattern = r'github\.com/[\w-]+'
+        github_match = re.search(github_pattern, text, re.IGNORECASE)
+        if github_match:
+            contact['github'] = github_match.group()
+        
+        return contact if contact else {'status': 'Not found'}
         """
         Create feature vectors from job description and resume text
         
@@ -315,6 +514,122 @@ class ResumeScreener:
             return 2.5  # Default middle score
 
     def analyze_match(self, job_desc, resume_text):
+        """
+        Comprehensive analysis of match between job and resume with NER
+        
+        Args:
+            job_desc (str): Job description text
+            resume_text (str): Resume text
+            
+        Returns:
+            dict: Analysis results with entities and job suggestions
+        """
+        try:
+            score = self.predict_match(job_desc, resume_text)
+            job_skills = self.extract_skills(job_desc)
+            resume_skills = self.extract_skills(resume_text)
+            
+            # Extract named entities
+            entities = self.extract_named_entities(resume_text)
+            
+            # Get job suggestions
+            job_suggestions = self.suggest_job_positions(resume_skills)
+            
+            matching_skills = sorted(set(job_skills) & set(resume_skills))
+            missing_skills = sorted(set(job_skills) - set(resume_skills))
+            extra_skills = sorted(set(resume_skills) - set(job_skills))
+            
+            return {
+                'match_score': round(score, 1),
+                'match_percentage': round((score / 5) * 100, 1),
+                'matching_skills': matching_skills,
+                'missing_skills': missing_skills,
+                'extra_skills': extra_skills,
+                'total_job_skills': len(job_skills),
+                'total_resume_skills': len(resume_skills),
+                'skills_match_ratio': round(len(matching_skills) / max(len(job_skills), 1), 2),
+                'named_entities': entities,
+                'job_suggestions': job_suggestions,
+                'detailed_analysis': {
+                    'strength_areas': self._identify_strength_areas(resume_skills),
+                    'improvement_areas': missing_skills[:5],  # Top 5 missing skills
+                    'career_level': self._determine_career_level(entities, resume_skills),
+                    'technical_depth': len(resume_skills),
+                    'domain_expertise': self._identify_domain_expertise(resume_skills)
+                }
+            }
+            
+        except Exception as e:
+            return {
+                'match_score': 1.0,
+                'match_percentage': 20.0,
+                'matching_skills': [],
+                'missing_skills': [],
+                'extra_skills': [],
+                'error': str(e),
+                'named_entities': {},
+                'job_suggestions': []
+            }
+
+    def _identify_strength_areas(self, skills):
+        """Identify candidate's strength areas based on skills"""
+        skill_categories = {
+            'Programming': ['python', 'java', 'javascript', 'c++', 'c#', 'php', 'ruby'],
+            'Data Science': ['machine learning', 'deep learning', 'pandas', 'numpy', 'tensorflow', 'pytorch'],
+            'Web Development': ['html', 'css', 'react', 'angular', 'vue', 'nodejs', 'django', 'flask'],
+            'Cloud & DevOps': ['aws', 'azure', 'docker', 'kubernetes', 'terraform', 'jenkins'],
+            'Databases': ['sql', 'mysql', 'postgresql', 'mongodb', 'oracle', 'redis'],
+            'Mobile': ['android', 'ios', 'react native', 'flutter']
+        }
+        
+        strengths = []
+        skills_lower = [skill.lower() for skill in skills]
+        
+        for category, category_skills in skill_categories.items():
+            matching_count = sum(1 for skill in category_skills if skill in skills_lower)
+            if matching_count >= 2:  # At least 2 skills in the category
+                strengths.append({
+                    'area': category,
+                    'skill_count': matching_count,
+                    'percentage': round((matching_count / len(category_skills)) * 100, 1)
+                })
+        
+        return sorted(strengths, key=lambda x: x['skill_count'], reverse=True)
+
+    def _determine_career_level(self, entities, skills):
+        """Determine career level based on entities and skills"""
+        experience = entities.get('experience_level', 'Not specified')
+        skill_count = len(skills)
+        
+        if 'senior' in experience.lower() or skill_count > 15:
+            return 'Senior Level'
+        elif 'entry' in experience.lower() or 'junior' in experience.lower() or skill_count < 8:
+            return 'Entry Level'
+        else:
+            return 'Mid Level'
+
+    def _identify_domain_expertise(self, skills):
+        """Identify domain expertise based on skill patterns"""
+        skills_lower = [skill.lower() for skill in skills]
+        
+        domains = {
+            'Web Development': ['html', 'css', 'javascript', 'react', 'angular', 'vue'],
+            'Data Science': ['python', 'machine learning', 'pandas', 'numpy', 'tensorflow'],
+            'Cloud Computing': ['aws', 'azure', 'gcp', 'docker', 'kubernetes'],
+            'Mobile Development': ['android', 'ios', 'react native', 'flutter'],
+            'DevOps': ['docker', 'kubernetes', 'jenkins', 'terraform', 'ansible']
+        }
+        
+        domain_scores = {}
+        for domain, domain_skills in domains.items():
+            score = sum(1 for skill in domain_skills if skill in skills_lower)
+            if score > 0:
+                domain_scores[domain] = round((score / len(domain_skills)) * 100, 1)
+        
+        # Return the domain with highest score
+        if domain_scores:
+            return max(domain_scores.items(), key=lambda x: x[1])
+        # return ('General', 0) resume_text):
         """
         Comprehensive analysis of match between job and resume
         
