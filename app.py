@@ -14,15 +14,11 @@ from PyPDF2 import PdfReader
 import docx
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
-import os 
-# Load NLP model
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    import os
-    os.system("python -m spacy download en_core_web_sm")
-    nlp = spacy.load("en_core_web_sm")
+!pip install -U spacy
+!python -m spacy download en_core_web_sm
 
+# Load NLP model
+nlp = spacy.load("en_core_web_sm")
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
 # Page configuration
