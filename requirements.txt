@@ -2,3 +2,5 @@ PyPDF2
 scikit-learn
 python-docx
 joblib
+sentence-transformers
+spacy
