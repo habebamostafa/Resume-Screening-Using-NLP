@@ -4,3 +4,4 @@ python-docx
 joblib
 sentence-transformers
 spacy
+matplotlib
