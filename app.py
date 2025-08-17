@@ -685,7 +685,7 @@ Skills Match Ratio: {analysis.get('skills_match_ratio', 0):.1%}
 
 SKILLS ANALYSIS
 --------------
-Total Skills Found: {analysis['total_resume_skills']}
+Total Skills Found: {analysis['total_skills']}
 Matching Skills ({len(analysis['matching_skills'])}): {', '.join(analysis['matching_skills'])}
 Missing Skills ({len(analysis['missing_skills'])}): {', '.join(analysis['missing_skills'])}
 Additional Skills ({len(analysis['extra_skills'])}): {', '.join(analysis['extra_skills'])}
