@@ -775,12 +775,12 @@ st.markdown(
     </div>
     """,
     unsafe_allow_html=True
-)lib"
-    if os.path.exists(model_path):
-        try:
+)
+if os.path.exists(model_path):
+    try:
             st.session_state.screener.load_model(model_path)
             st.session_state.model_loaded = True
-        except Exception as e:
+    except Exception as e:
             st.warning(f"Could not load model: {str(e)}. Using fallback similarity scoring.")
 
 # Custom CSS for better styling
