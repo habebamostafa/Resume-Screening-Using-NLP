@@ -528,25 +528,19 @@ class ResumeScreener:
 
     def analyze_match(self, job_desc, resume_text):
         """
-        Comprehensive analysis of match between job and resume with NER
+        Comprehensive analysis of match between job and resume
         
         Args:
             job_desc (str): Job description text
             resume_text (str): Resume text
             
         Returns:
-            dict: Analysis results with entities and job suggestions
+            dict: Analysis results with consistent keys
         """
         try:
             score = self.predict_match(job_desc, resume_text)
             job_skills = self.extract_skills(job_desc)
             resume_skills = self.extract_skills(resume_text)
-            
-            # Extract named entities
-            entities = self.extract_named_entities(resume_text)
-            
-            # Get job suggestions
-            job_suggestions = self.suggest_job_positions(resume_skills)
             
             matching_skills = sorted(set(job_skills) & set(resume_skills))
             missing_skills = sorted(set(job_skills) - set(resume_skills))
@@ -561,15 +555,16 @@ class ResumeScreener:
                 'total_job_skills': len(job_skills),
                 'total_resume_skills': len(resume_skills),
                 'skills_match_ratio': round(len(matching_skills) / max(len(job_skills), 1), 2),
-                'named_entities': entities,
-                'job_suggestions': job_suggestions,
+                'named_entities': self.extract_named_entities(resume_text),
+                'job_suggestions': self.suggest_job_positions(resume_skills),
                 'detailed_analysis': {
                     'strength_areas': self._identify_strength_areas(resume_skills),
-                    'improvement_areas': missing_skills[:5],  # Top 5 missing skills
-                    'career_level': self._determine_career_level(entities, resume_skills),
+                    'improvement_areas': missing_skills[:5],
+                    'career_level': self._determine_career_level(resume_text, resume_skills),
                     'technical_depth': len(resume_skills),
                     'domain_expertise': self._identify_domain_expertise(resume_skills)
-                }
+                },
+                'error': None
             }
             
         except Exception as e:
@@ -579,9 +574,19 @@ class ResumeScreener:
                 'matching_skills': [],
                 'missing_skills': [],
                 'extra_skills': [],
-                'error': str(e),
+                'total_job_skills': 0,
+                'total_resume_skills': 0,
+                'skills_match_ratio': 0,
                 'named_entities': {},
-                'job_suggestions': []
+                'job_suggestions': [],
+                'detailed_analysis': {
+                    'strength_areas': [],
+                    'improvement_areas': [],
+                    'career_level': 'Unknown',
+                    'technical_depth': 0,
+                    'domain_expertise': ('General', 0)
+                },
+                'error': str(e)
             }
 
     def _identify_strength_areas(self, skills):

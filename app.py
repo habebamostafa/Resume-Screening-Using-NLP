@@ -434,9 +434,10 @@ if st.session_state.current_analysis:
             """, unsafe_allow_html=True)
     
     with col4:
+        total_skills = analysis.get('total_resume_skills', 0)  # Use get() with default value
         st.markdown(f"""
         <div class="metric-card">
-            <h2>{analysis['total_resume_skills']}</h2>
+            <h2>{total_skills}</h2>
             <p>Skills Found</p>
         </div>
         """, unsafe_allow_html=True)
