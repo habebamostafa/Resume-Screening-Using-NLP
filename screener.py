@@ -433,6 +433,7 @@ class ResumeScreener:
             contact['github'] = github_match.group()
         
         return contact if contact else {'status': 'Not found'}
+    def create_features(self, job_desc, resume_text):
         """
         Create feature vectors from job description and resume text
         
