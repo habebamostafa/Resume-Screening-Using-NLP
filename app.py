@@ -672,35 +672,36 @@ if st.session_state.current_analysis:
     
     with col1:
         # Generate detailed report
+        # In your Streamlit app where you generate the report:
         report = f"""
-AI RESUME ANALYSIS REPORT
-========================
+            AI RESUME ANALYSIS REPORT
+            ========================
 
-Analysis Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+            Analysis Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-OVERALL SCORE
-------------
-Match Score: {analysis['match_score']:.1f}/5.0 ({analysis['match_percentage']:.1f}%)
-Skills Match Ratio: {analysis.get('skills_match_ratio', 0):.1%}
+            OVERALL SCORE
+            ------------
+            Match Score: {analysis.get('match_score', 0):.1f}/5.0 ({analysis.get('match_percentage', 0):.1f}%)
+            Skills Match Ratio: {analysis.get('skills_match_ratio', 0):.1%}
 
-SKILLS ANALYSIS
---------------
-Total Skills Found: {analysis['total_skills']}
-Matching Skills ({len(analysis['matching_skills'])}): {', '.join(analysis['matching_skills'])}
-Missing Skills ({len(analysis['missing_skills'])}): {', '.join(analysis['missing_skills'])}
-Additional Skills ({len(analysis['extra_skills'])}): {', '.join(analysis['extra_skills'])}
+            SKILLS ANALYSIS
+            --------------
+            Total Skills Found: {analysis.get('total_resume_skills', 0)}
+            Matching Skills ({len(analysis.get('matching_skills', []))}: {', '.join(analysis.get('matching_skills', []))}
+            Missing Skills ({len(analysis.get('missing_skills', []))}: {', '.join(analysis.get('missing_skills', []))}
+            Additional Skills ({len(analysis.get('extra_skills', []))}: {', '.join(analysis.get('extra_skills', []))}
 
-NAMED ENTITIES
--------------
-Experience Level: {analysis.get('named_entities', {}).get('experience_level', 'Not specified')}
-Education: {', '.join(analysis.get('named_entities', {}).get('education', ['Not specified']))}
-Certifications: {', '.join(analysis.get('named_entities', {}).get('certifications', ['None mentioned']))}
-Companies: {', '.join(analysis.get('named_entities', {}).get('companies', ['Not specified']))}
-Projects: {analysis.get('named_entities', {}).get('projects', 'No projects mentioned')}
+            NAMED ENTITIES
+            -------------
+            Experience Level: {analysis.get('named_entities', {}).get('experience_level', 'Not specified')}
+            Education: {', '.join(analysis.get('named_entities', {}).get('education', ['Not specified']))}
+            Certifications: {', '.join(analysis.get('named_entities', {}).get('certifications', ['None mentioned']))}
+            Companies: {', '.join(analysis.get('named_entities', {}).get('companies', ['Not specified']))}
+            Projects: {analysis.get('named_entities', {}).get('projects', 'No projects mentioned')}
 
-JOB RECOMMENDATIONS
-------------------
-"""
+            JOB RECOMMENDATIONS
+            ------------------
+            """
         
         if 'job_suggestions' in analysis:
             for i, suggestion in enumerate(analysis['job_suggestions'][:3]):

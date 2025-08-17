@@ -530,64 +530,59 @@ class ResumeScreener:
         """
         Comprehensive analysis of match between job and resume
         
-        Args:
-            job_desc (str): Job description text
-            resume_text (str): Resume text
-            
-        Returns:
-            dict: Analysis results with consistent keys
+        Returns a dictionary with all expected keys, even in case of error
         """
+        # Default result dictionary that will always contain all expected keys
+        result = {
+            'match_score': 1.0,
+            'match_percentage': 20.0,
+            'matching_skills': [],
+            'missing_skills': [],
+            'extra_skills': [],
+            'total_job_skills': 0,
+            'total_resume_skills': 0,
+            'skills_match_ratio': 0,
+            'named_entities': {},
+            'job_suggestions': [],
+            'detailed_analysis': {
+                'strength_areas': [],
+                'improvement_areas': [],
+                'career_level': 'Unknown',
+                'technical_depth': 0,
+                'domain_expertise': ('General', 0)
+            },
+            'error': None
+        }
+
         try:
             score = self.predict_match(job_desc, resume_text)
             job_skills = self.extract_skills(job_desc)
             resume_skills = self.extract_skills(resume_text)
             
-            matching_skills = sorted(set(job_skills) & set(resume_skills))
-            missing_skills = sorted(set(job_skills) - set(resume_skills))
-            extra_skills = sorted(set(resume_skills) - set(job_skills))
-            
-            return {
+            result.update({
                 'match_score': round(score, 1),
                 'match_percentage': round((score / 5) * 100, 1),
-                'matching_skills': matching_skills,
-                'missing_skills': missing_skills,
-                'extra_skills': extra_skills,
+                'matching_skills': sorted(set(job_skills) & set(resume_skills)),
+                'missing_skills': sorted(set(job_skills) - set(resume_skills)),
+                'extra_skills': sorted(set(resume_skills) - set(job_skills)),
                 'total_job_skills': len(job_skills),
                 'total_resume_skills': len(resume_skills),
-                'skills_match_ratio': round(len(matching_skills) / max(len(job_skills), 1), 2),
+                'skills_match_ratio': round(len(set(job_skills) & set(resume_skills)) / max(len(job_skills), 1), 2),
                 'named_entities': self.extract_named_entities(resume_text),
                 'job_suggestions': self.suggest_job_positions(resume_skills),
                 'detailed_analysis': {
                     'strength_areas': self._identify_strength_areas(resume_skills),
-                    'improvement_areas': missing_skills[:5],
+                    'improvement_areas': (set(job_skills) - set(resume_skills))[:5],
                     'career_level': self._determine_career_level(resume_text, resume_skills),
                     'technical_depth': len(resume_skills),
                     'domain_expertise': self._identify_domain_expertise(resume_skills)
-                },
-                'error': None
-            }
+                }
+            })
             
         except Exception as e:
-            return {
-                'match_score': 1.0,
-                'match_percentage': 20.0,
-                'matching_skills': [],
-                'missing_skills': [],
-                'extra_skills': [],
-                'total_job_skills': 0,
-                'total_resume_skills': 0,
-                'skills_match_ratio': 0,
-                'named_entities': {},
-                'job_suggestions': [],
-                'detailed_analysis': {
-                    'strength_areas': [],
-                    'improvement_areas': [],
-                    'career_level': 'Unknown',
-                    'technical_depth': 0,
-                    'domain_expertise': ('General', 0)
-                },
-                'error': str(e)
-            }
+            result['error'] = str(e)
+        
+        return result
 
     def _identify_strength_areas(self, skills):
         """Identify candidate's strength areas based on skills"""
