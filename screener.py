@@ -433,6 +433,8 @@ class ResumeScreener:
             contact['github'] = github_match.group()
         
         return contact if contact else {'status': 'Not found'}
+
+    def create_features(self, job_desc, resume_text):
         """
         Create feature vectors from job description and resume text
         
@@ -486,20 +488,7 @@ class ResumeScreener:
             # Fallback to similarity-based scoring
             print(f"Model prediction failed: {e}. Using similarity-based scoring.")
             return self._similarity_based_score(job_desc, resume_text)
-        
-    def create_features(self, job_desc, resume_text):
-        """Create feature vectors from job description and resume text"""
-        # Get embeddings
-        job_embedding = self.embedding_model.encode([job_desc], convert_to_numpy=True)[0]
-        resume_embedding = self.embedding_model.encode([resume_text], convert_to_numpy=True)[0]
-        
-        # Calculate cosine similarity
-        similarity = cosine_similarity([job_embedding], [resume_embedding])[0][0]
-        
-        # Combine features
-        features = np.hstack([job_embedding, resume_embedding, [similarity]])
-        
-        return features.reshape(1, -1)
+
     def _similarity_based_score(self, job_desc, resume_text):
         """Fallback scoring method based on text similarity and skill matching"""
         try:
@@ -526,63 +515,66 @@ class ResumeScreener:
             print(f"Similarity scoring failed: {e}. Using default score.")
             return 2.5  # Default middle score
 
-    def analyze_match(self, job_desc, resume_text):
-        """
-        Comprehensive analysis of match between job and resume
-        
-        Returns a dictionary with all expected keys, even in case of error
-        """
-        # Default result dictionary that will always contain all expected keys
-        result = {
-            'match_score': 1.0,
-            'match_percentage': 20.0,
-            'matching_skills': [],
-            'missing_skills': [],
-            'extra_skills': [],
-            'total_job_skills': 0,
-            'total_resume_skills': 0,
-            'skills_match_ratio': 0,
-            'named_entities': {},
-            'job_suggestions': [],
-            'detailed_analysis': {
-                'strength_areas': [],
-                'improvement_areas': [],
-                'career_level': 'Unknown',
-                'technical_depth': 0,
-                'domain_expertise': ('General', 0)
+    def suggest_job_positions(self, resume_skills):
+        """Suggest job positions based on resume skills"""
+        # Define job profiles with required skills
+        job_profiles = {
+            'Data Scientist': {
+                'required_skills': ['python', 'machine learning', 'pandas', 'numpy', 'sql', 'statistics'],
+                'preferred_skills': ['tensorflow', 'pytorch', 'scikit-learn', 'jupyter', 'matplotlib']
             },
-            'error': None
+            'Full Stack Developer': {
+                'required_skills': ['html', 'css', 'javascript', 'react', 'nodejs', 'sql'],
+                'preferred_skills': ['mongodb', 'express', 'git', 'docker', 'aws']
+            },
+            'DevOps Engineer': {
+                'required_skills': ['docker', 'kubernetes', 'aws', 'linux', 'git'],
+                'preferred_skills': ['terraform', 'jenkins', 'ansible', 'python', 'monitoring']
+            },
+            'Mobile Developer': {
+                'required_skills': ['android', 'ios', 'mobile development'],
+                'preferred_skills': ['react native', 'flutter', 'swift', 'kotlin']
+            },
+            'Frontend Developer': {
+                'required_skills': ['html', 'css', 'javascript', 'react'],
+                'preferred_skills': ['vue', 'angular', 'sass', 'webpack', 'typescript']
+            },
+            'Backend Developer': {
+                'required_skills': ['python', 'nodejs', 'sql', 'api'],
+                'preferred_skills': ['django', 'flask', 'express', 'mongodb', 'redis']
+            }
         }
-
-        try:
-            score = self.predict_match(job_desc, resume_text)
-            job_skills = self.extract_skills(job_desc)
-            resume_skills = self.extract_skills(resume_text)
-            
-            result.update({
-                'match_score': round(score, 1),
-                'match_percentage': round((score / 5) * 100, 1),
-                'matching_skills': sorted(set(job_skills) & set(resume_skills)),
-                'missing_skills': sorted(set(job_skills) - set(resume_skills)),
-                'extra_skills': sorted(set(resume_skills) - set(job_skills)),
-                'total_job_skills': len(job_skills),
-                'total_resume_skills': len(resume_skills),
-                'skills_match_ratio': round(len(set(job_skills) & set(resume_skills)) / max(len(job_skills), 1), 2),
-                'named_entities': self.extract_named_entities(resume_text),
-                'job_suggestions': self.suggest_job_positions(resume_skills),
-                'detailed_analysis': {
-                    'strength_areas': self._identify_strength_areas(resume_skills),
-                    'improvement_areas': (set(job_skills) - set(resume_skills))[:5],
-                    'career_level': self._determine_career_level(resume_text, resume_skills),
-                    'technical_depth': len(resume_skills),
-                    'domain_expertise': self._identify_domain_expertise(resume_skills)
-                }
-            })
-            
-        except Exception as e:
-            result['error'] = str(e)
         
-        return result
+        resume_skills_lower = [skill.lower() for skill in resume_skills]
+        suggestions = []
+        
+        for job_title, profile in job_profiles.items():
+            required_skills = [skill.lower() for skill in profile['required_skills']]
+            preferred_skills = [skill.lower() for skill in profile['preferred_skills']]
+            
+            # Calculate match percentages
+            required_matches = [skill for skill in required_skills if skill in resume_skills_lower]
+            preferred_matches = [skill for skill in preferred_skills if skill in resume_skills_lower]
+            
+            total_skills = len(required_skills) + len(preferred_skills)
+            total_matches = len(required_matches) + len(preferred_matches)
+            
+            if total_matches > 0:
+                match_percentage = (total_matches / total_skills) * 100
+                
+                # Only suggest if there's at least 30% match
+                if match_percentage >= 30:
+                    suggestions.append({
+                        'job_title': job_title,
+                        'match_percentage': round(match_percentage, 1),
+                        'matching_skills': required_matches + preferred_matches,
+                        'missing_skills': [skill for skill in required_skills if skill not in resume_skills_lower][:5]
+                    })
+        
+        # Sort by match percentage
+        suggestions.sort(key=lambda x: x['match_percentage'], reverse=True)
+        
+        return suggestions[:5]  # Return top 5 suggestions
 
     def _identify_strength_areas(self, skills):
         """Identify candidate's strength areas based on skills"""
@@ -609,8 +601,9 @@ class ResumeScreener:
         
         return sorted(strengths, key=lambda x: x['skill_count'], reverse=True)
 
-    def _determine_career_level(self, entities, skills):
-        """Determine career level based on entities and skills"""
+    def _determine_career_level(self, resume_text, skills):
+        """Determine career level based on resume text and skills"""
+        entities = self.extract_named_entities(resume_text)
         experience = entities.get('experience_level', 'Not specified')
         skill_count = len(skills)
         
@@ -642,43 +635,61 @@ class ResumeScreener:
         # Return the domain with highest score
         if domain_scores:
             return max(domain_scores.items(), key=lambda x: x[1])
-        # return ('General', 0) resume_text):
+        return ('General', 0)
+
+    def analyze_match(self, job_desc, resume_text):
         """
         Comprehensive analysis of match between job and resume
         
-        Args:
-            job_desc (str): Job description text
-            resume_text (str): Resume text
-            
-        Returns:
-            dict: Analysis results
+        Returns a dictionary with all expected keys, even in case of error
         """
-        try:
-            score = self.predict_match(job_desc, resume_text)
-            job_skills = self.extract_skills(job_desc)
-            resume_skills = self.extract_skills(resume_text)
-            
-            matching_skills = sorted(set(job_skills) & set(resume_skills))
-            missing_skills = sorted(set(job_skills) - set(resume_skills))
-            extra_skills = sorted(set(resume_skills) - set(job_skills))
-            
-            return {
-                'match_score': round(score, 1),
-                'match_percentage': round((score / 5) * 100, 1),
-                'matching_skills': matching_skills,
-                'missing_skills': missing_skills,
-                'extra_skills': extra_skills,
-                'total_job_skills': len(job_skills),
-                'total_resume_skills': len(resume_skills),
-                'skills_match_ratio': round(len(matching_skills) / max(len(job_skills), 1), 2)
+        # Default result dictionary that will always contain all expected keys
+        result = {
+            'match_score': 1.0,
+            'match_percentage': 20.0,
+            'matching_skills': [],
+            'missing_skills': [],
+            'extra_skills': [],
+            'total_job_skills': 0,
+            'total_resume_skills': 0,
+            'skills_match_ratio': 0,
+            'named_entities': {},
+            'job_suggestions': [],
+            'detailed_analysis': {
+                'strength_areas': [],
+                'improvement_areas': [],
+                'career_level': 'Unknown',
+                'technical_depth': 0,
+                'domain_expertise': ('General', 0)
+            },
+            'error': None
+        }
+
+        score = self.predict_match(job_desc, resume_text)
+        job_skills = self.extract_skills(job_desc)
+        resume_skills = self.extract_skills(resume_text)
+        
+        matching_skills = sorted(set(job_skills) & set(resume_skills))
+        missing_skills = sorted(set(job_skills) - set(resume_skills))
+        extra_skills = sorted(set(resume_skills) - set(job_skills))
+        
+        result.update({
+            'match_score': round(score, 1),
+            'match_percentage': round((score / 5) * 100, 1),
+            'matching_skills': matching_skills,
+            'missing_skills': missing_skills,
+            'extra_skills': extra_skills,
+            'total_job_skills': len(job_skills),
+            'total_resume_skills': len(resume_skills),
+            'skills_match_ratio': round(len(matching_skills) / max(len(job_skills), 1), 2),
+            'named_entities': self.extract_named_entities(resume_text),
+            'job_suggestions': self.suggest_job_positions(resume_skills),
+            'detailed_analysis': {
+                'strength_areas': self._identify_strength_areas(resume_skills),
+                'improvement_areas': list(set(job_skills) - set(resume_skills))[:5],
+                'career_level': self._determine_career_level(resume_text, resume_skills),
+                'technical_depth': len(resume_skills),
+                'domain_expertise': self._identify_domain_expertise(resume_skills)
             }
-            
-        except Exception as e:
-            return {
-                'match_score': 1.0,
-                'match_percentage': 20.0,
-                'matching_skills': [],
-                'missing_skills': [],
-                'extra_skills': [],
-                'error': str(e)
-            }
+        })
+        
