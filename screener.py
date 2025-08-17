@@ -486,7 +486,20 @@ class ResumeScreener:
             # Fallback to similarity-based scoring
             print(f"Model prediction failed: {e}. Using similarity-based scoring.")
             return self._similarity_based_score(job_desc, resume_text)
-
+        
+    def create_features(self, job_desc, resume_text):
+        """Create feature vectors from job description and resume text"""
+        # Get embeddings
+        job_embedding = self.embedding_model.encode([job_desc], convert_to_numpy=True)[0]
+        resume_embedding = self.embedding_model.encode([resume_text], convert_to_numpy=True)[0]
+        
+        # Calculate cosine similarity
+        similarity = cosine_similarity([job_embedding], [resume_embedding])[0][0]
+        
+        # Combine features
+        features = np.hstack([job_embedding, resume_embedding, [similarity]])
+        
+        return features.reshape(1, -1)
     def _similarity_based_score(self, job_desc, resume_text):
         """Fallback scoring method based on text similarity and skill matching"""
         try:
