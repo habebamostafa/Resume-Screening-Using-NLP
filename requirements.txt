@@ -11,4 +11,3 @@ xgboost>=1.7.0
 pandas>=2.0.0
 numpy>=1.24.0
 pathlib2>=2.3.7
-plotly
