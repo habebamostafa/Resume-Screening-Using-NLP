@@ -26,13 +26,12 @@ if 'analysis_history' not in st.session_state:
     
 if 'current_analysis' not in st.session_state:
     st.session_state.current_analysis = None
-
+model_path = "resume_screener_model.joblib"
 # Try to load model if it exists
 if 'model_loaded' not in st.session_state:
     st.session_state.model_loaded = False
     
     # Check for model file
-    model_path = "resume_screener_model.joblib"
     if os.path.exists(model_path):
         try:
             st.session_state.screener.load_model(model_path)
