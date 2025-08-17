@@ -643,7 +643,7 @@ class ResumeScreener:
         
         Returns a dictionary with all expected keys, even in case of error
         """
-        # Default result dictionary that will always contain all expected keys
+        # Default result dictionary with all expected keys
         result = {
             'match_score': 1.0,
             'match_percentage': 20.0,
@@ -652,7 +652,7 @@ class ResumeScreener:
             'extra_skills': [],
             'total_job_skills': 0,
             'total_resume_skills': 0,
-            'skills_match_ratio': 0,
+            'skills_match_ratio': 0.0,
             'named_entities': {},
             'job_suggestions': [],
             'detailed_analysis': {
@@ -665,31 +665,41 @@ class ResumeScreener:
             'error': None
         }
 
-        score = self.predict_match(job_desc, resume_text)
-        job_skills = self.extract_skills(job_desc)
-        resume_skills = self.extract_skills(resume_text)
+        try:
+            score = self.predict_match(job_desc, resume_text)
+            job_skills = self.extract_skills(job_desc)
+            resume_skills = self.extract_skills(resume_text)
+            
+            matching_skills = sorted(set(job_skills) & set(resume_skills))
+            missing_skills = sorted(set(job_skills) - set(resume_skills))
+            extra_skills = sorted(set(resume_skills) - set(job_skills))
+            
+            # Calculate skills match ratio safely
+            skills_match_ratio = 0.0
+            if len(job_skills) > 0:
+                skills_match_ratio = len(matching_skills) / len(job_skills)
+            
+            result.update({
+                'match_score': min(5.0, max(1.0, float(score))),
+                'match_percentage': min(100.0, max(0.0, (score / 5) * 100)),
+                'matching_skills': matching_skills,
+                'missing_skills': missing_skills,
+                'extra_skills': extra_skills,
+                'total_job_skills': len(job_skills),
+                'total_resume_skills': len(resume_skills),
+                'skills_match_ratio': skills_match_ratio,
+                'named_entities': self.extract_named_entities(resume_text),
+                'job_suggestions': self.suggest_job_positions(resume_skills),
+                'detailed_analysis': {
+                    'strength_areas': self._identify_strength_areas(resume_skills),
+                    'improvement_areas': missing_skills[:5],
+                    'career_level': self._determine_career_level(resume_text, resume_skills),
+                    'technical_depth': len(resume_skills),
+                    'domain_expertise': self._identify_domain_expertise(resume_skills)
+                }
+            })
+            
+        except Exception as e:
+            result['error'] = str(e)
         
-        matching_skills = sorted(set(job_skills) & set(resume_skills))
-        missing_skills = sorted(set(job_skills) - set(resume_skills))
-        extra_skills = sorted(set(resume_skills) - set(job_skills))
-        
-        result.update({
-            'match_score': round(score, 1),
-            'match_percentage': round((score / 5) * 100, 1),
-            'matching_skills': matching_skills,
-            'missing_skills': missing_skills,
-            'extra_skills': extra_skills,
-            'total_job_skills': len(job_skills),
-            'total_resume_skills': len(resume_skills),
-            'skills_match_ratio': round(len(matching_skills) / max(len(job_skills), 1), 2),
-            'named_entities': self.extract_named_entities(resume_text),
-            'job_suggestions': self.suggest_job_positions(resume_skills),
-            'detailed_analysis': {
-                'strength_areas': self._identify_strength_areas(resume_skills),
-                'improvement_areas': list(set(job_skills) - set(resume_skills))[:5],
-                'career_level': self._determine_career_level(resume_text, resume_skills),
-                'technical_depth': len(resume_skills),
-                'domain_expertise': self._identify_domain_expertise(resume_skills)
-            }
-        })
-        
+        return result
